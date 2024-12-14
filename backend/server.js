@@ -2,64 +2,130 @@ import http from 'http';
 import fs from 'fs/promises';
 import url from 'url';
 import path from 'path';
-import querystring from 'querystring';
 import client from './db.js';
+import bcrypt from 'bcrypt';
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8080;
 const __filename = url.fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// MIME types for different file types
-const MIME_TYPES = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'text/javascript',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml'
-};
+
 
 const server = http.createServer(async (req, res) => {
+    const logError = (stage, error) => {
+        console.error(`[Patient Registration Error - ${stage}]`, {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code,
+            details: error.detail || 'No additional details'
+        });
+    };
+
+   
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
     const parseUrl = url.parse(req.url, true);
 
-    if (req.method === 'GET' && parseUrl.pathname === '/') {
-        try {
-            const data = await fs.readFile(path.join(__dirname, 'public', 'index.html'), 'utf-8');
-
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(data);
-        } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'text/plain' });
-            res.end('Error reading index.html');
-        }
-    } else if (req.method === 'POST' && parseUrl.pathname === '/submit') {
+    if (req.method === 'POST' && parseUrl.pathname === '/submit') {
         let body = '';
         req.on('data', chunk => {
-            body += chunk;
+            body += chunk.toString();
         });
 
         req.on('end', async () => {
-            const formData = querystring.parse(body);
+            try {
+                const formData = JSON.parse(body);
 
-            const { fullName, cni, email, phone, healthProblem, doctor, city, age, gender } = formData;
+                const requiredFields = [
+                    'fullName', 'cni', 'email', 'phoneNumber', 
+                    'healthProblem', 'doctorName', 'city', 
+                    'age', 'gender', 'password'
+                ];
 
-            const createdAt = new Date();
-            const updatedAt = new Date();
+                const missingFields = requiredFields.filter(field => 
+                    !formData[field] || formData[field].trim() === ''
+                );
 
-            const query = `
-            INSERT INTO "Patients" ("fullName", "cni", "email", "phoneNumber", "healthProblem", "doctorName", "city", "age", "gender", "createdAt", "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            `;
-            const values = [fullName, cni, email, phone, healthProblem, doctor, city, age, gender, createdAt, updatedAt];
-                    try {
-                await client.query(query, values);
-                res.writeHead(200, { 'Content-Type': 'text/plain' });
-                res.end('Patient successfully registered!');
-            } catch (err) {
-                res.writeHead(500, { 'Content-Type': 'text/plain' });
-                res.end('Error saving data: ' + err.message);
+                if (missingFields.length > 0) {
+                    throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+                }
+
+                const { 
+                    fullName, 
+                    cni, 
+                    email, 
+                    phoneNumber, 
+                    healthProblem, 
+                    doctorName, 
+                    city, 
+                    age, 
+                    gender,
+                    password 
+                } = formData;
+
+                const createdAt = new Date();
+                const updatedAt = new Date();
+
+                const hashedPassword = await bcrypt.hash(password, 10);
+
+                const query = `
+                INSERT INTO "Patients" (
+                    "fullName", "cni", "email", "phoneNumber", 
+                    "healthProblem", "doctorName", "city", 
+                    "age", "gender", "password", "createdAt", "updatedAt"
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                RETURNING id
+                `;
+
+                const values = [
+                    fullName, cni, email, phoneNumber, 
+                    healthProblem, doctorName, city, 
+                    age, gender, hashedPassword, 
+                    createdAt, updatedAt
+                ];
+
+                try {
+                    const result = await client.query(query, values);
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ 
+                        message: 'Patient successfully registered!', 
+                        id: result.rows[0].id 
+                    }));
+                } catch (dbError) {
+                   
+                    logError('Database Insertion', dbError);
+                    
+                    res.writeHead(500, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ 
+                        message: 'Error saving patient data', 
+                        error: dbError.message,
+                        details: {
+                            code: dbError.code,
+                            constraint: dbError.constraint,
+                            detail: dbError.detail
+                        }
+                    }));
+                }
+
+            } catch (parseError) {
+                
+                logError('Request Parsing', parseError);
+                
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ 
+                    message: 'Invalid request data', 
+                    error: parseError.message 
+                }));
             }
         });
     } else {
@@ -67,6 +133,7 @@ const server = http.createServer(async (req, res) => {
         res.end('Page not found');
     }
 });
+
 
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
