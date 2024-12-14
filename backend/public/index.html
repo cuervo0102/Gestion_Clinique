@@ -22,10 +22,16 @@
         <input type="tel" id="phone" name="phone" required><br>
 
         <label for="healthProblem">Health Problem:</label>
-        <input type="text" id="healthProblem" name="healthProblem" required><br>
+        <select name="doctorId" required>
+            <option value="" disabled selected>Select a doctor</option>
+            {{DISEASE_OPTIONS}}
+        </select>
 
         <label for="doctor">Doctor:</label>
-        <input type="text" id="doctor" name="doctor" required><br>
+        <select name="diseaseId" required>
+            <option value="" disabled selected>Select a disease</option>
+            {{DOCTOR_OPTIONS}}
+        </select><br>
 
         <label for="city">City:</label>
         <input type="text" id="city" name="city" required><br>
