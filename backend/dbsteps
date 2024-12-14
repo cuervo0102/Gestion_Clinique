@@ -1,0 +1,2 @@
+npx sequelize-cli model:generate --name Patient --attributes fullName:string,CNI:string,email:string,phone:string,healthProblem:string,doctorName:string,city:string,age:integer,gender:string
+npx sequelize-cli db:migrate
