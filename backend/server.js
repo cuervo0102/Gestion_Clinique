@@ -1,19 +1,15 @@
 import http from 'http';
-import fs from 'fs/promises';
 import url from 'url';
 import path from 'path';
-import client from './db.js';
 import bcrypt from 'bcrypt';
+import client from './db.js';
+import transporter from './mailConfiguration.js'; 
 
 const PORT = process.env.PORT || 8080;
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-
 
 const server = http.createServer(async (req, res) => {
     const logError = (stage, error) => {
-        console.error(`[Patient Registration Error - ${stage}]`, {
+        console.error(`[Error - ${stage}]`, {
             message: error.message,
             stack: error.stack,
             name: error.name,
@@ -22,7 +18,6 @@ const server = http.createServer(async (req, res) => {
         });
     };
 
-   
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -37,6 +32,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && parseUrl.pathname === '/submit') {
         let body = '';
+
         req.on('data', chunk => {
             body += chunk.toString();
         });
@@ -45,9 +41,10 @@ const server = http.createServer(async (req, res) => {
             try {
                 const formData = JSON.parse(body);
 
+               
                 const requiredFields = [
-                    'fullName', 'cni', 'email', 'phoneNumber', 
-                    'healthProblem', 'doctorName', 'city', 
+                    'fullName', 'cni', 'email', 'phoneNumber',
+                    'healthProblem', 'doctorName', 'city',
                     'age', 'gender', 'password'
                 ];
 
@@ -60,71 +57,71 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 const { 
-                    fullName, 
-                    cni, 
-                    email, 
-                    phoneNumber, 
-                    healthProblem, 
-                    doctorName, 
-                    city, 
-                    age, 
-                    gender,
-                    password 
+                    fullName, cni, email, phoneNumber,
+                    healthProblem, doctorName, city,
+                    age, gender, password
                 } = formData;
 
                 const createdAt = new Date();
                 const updatedAt = new Date();
 
+               
                 const hashedPassword = await bcrypt.hash(password, 10);
 
                 const query = `
-                INSERT INTO "Patients" (
-                    "fullName", "cni", "email", "phoneNumber", 
-                    "healthProblem", "doctorName", "city", 
-                    "age", "gender", "password", "createdAt", "updatedAt"
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                RETURNING id
+                    INSERT INTO "Patients" (
+                        "fullName", "cni", "email", "phoneNumber",
+                        "healthProblem", "doctorName", "city",
+                        "age", "gender", "password", "createdAt", "updatedAt"
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    RETURNING id
                 `;
 
                 const values = [
-                    fullName, cni, email, phoneNumber, 
-                    healthProblem, doctorName, city, 
-                    age, gender, hashedPassword, 
+                    fullName, cni, email, phoneNumber,
+                    healthProblem, doctorName, city,
+                    age, gender, hashedPassword,
                     createdAt, updatedAt
                 ];
 
                 try {
                     const result = await client.query(query, values);
 
+                 
+                    const mailOptions = {
+                        from: process.env.EMAIL,
+                        to: email,
+                        subject: `Welcome ${fullName}`,
+                        text: `Hi ${fullName},\n\nThank you for registering with us. We're glad to have you!`
+                    };
+
+                    transporter.sendMail(mailOptions, (err, info) => {
+                        if (err) {
+                            logError('Email Sending', err);
+                        } else {
+                            console.log('Email sent:', info.response);
+                        }
+                    });
+
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ 
-                        message: 'Patient successfully registered!', 
+                        message: 'Patient successfully registered!',
                         id: result.rows[0].id 
                     }));
                 } catch (dbError) {
-                   
                     logError('Database Insertion', dbError);
-                    
                     res.writeHead(500, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ 
-                        message: 'Error saving patient data', 
-                        error: dbError.message,
-                        details: {
-                            code: dbError.code,
-                            constraint: dbError.constraint,
-                            detail: dbError.detail
-                        }
+                        message: 'Error saving patient data',
+                        error: dbError.message
                     }));
                 }
-
-            } catch (parseError) {
-                
-                logError('Request Parsing', parseError);
-                
+            } catch (error) {
+                logError('Request Handling', error);
                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ 
-                    message: 'Invalid request data', 
-                    error: parseError.message 
+                res.end(JSON.stringify({
+                    message: 'Invalid request data',
+                    error: error.message
                 }));
             }
         });
@@ -133,7 +130,6 @@ const server = http.createServer(async (req, res) => {
         res.end('Page not found');
     }
 });
-
 
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
