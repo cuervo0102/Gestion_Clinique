@@ -12,7 +12,7 @@ const Welcome = () => {
                 <button onClick = {() => navigate("/create-patient")}>Create a Patient</button>
             </div>
             <div>
-            <button onClick = {() => navigate("/login-patient")}>Create a Patient</button>
+            <button onClick = {() => navigate("/login-patient")}>Login</button>
             </div>
         </div>
         
