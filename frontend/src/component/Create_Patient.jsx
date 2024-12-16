@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 
 const CreatePatient = () => {
   const [patientData, setPatientData] = useState({
@@ -14,15 +15,42 @@ const CreatePatient = () => {
     password: '',
   });
 
+  const [doctors, setDoctors] = useState([]);
+  const [diseases, setDiseases] = useState([]);
   const [submitStatus, setSubmitStatus] = useState({
     loading: false,
     error: null,
-    success: false
+    success: false,
   });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [doctorsResponse, diseasesResponse] = await Promise.all([
+          fetch('http://localhost:8080/doctors'),
+          fetch('http://localhost:8080/diseases'),
+        ]);
+
+        const doctorsData = await doctorsResponse.json();
+        const diseasesData = await diseasesResponse.json();
+
+        console.log('Doctors:', doctorsData);
+        console.log('Diseases:', diseasesData);
+
+        setDoctors(doctorsData.data || doctorsData);
+        setDiseases(diseasesData.data || diseasesData);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        alert('Failed to load dropdown data.');
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setPatientData(prev => ({
+    setPatientData((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -30,12 +58,9 @@ const CreatePatient = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Reset status
     setSubmitStatus({ loading: true, error: null, success: false });
 
     try {
-     
       const response = await fetch('http://localhost:8080/submit', {
         method: 'POST',
         headers: {
@@ -44,12 +69,11 @@ const CreatePatient = () => {
         body: JSON.stringify(patientData),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (response.ok) {
         setSubmitStatus({ loading: false, error: null, success: true });
-        alert(`Patient created successfully! ID: ${data.id}`);
-        
+        alert(`Patient created successfully! ID: ${responseData.data.id}`);
         // Reset form
         setPatientData({
           fullName: '',
@@ -64,32 +88,31 @@ const CreatePatient = () => {
           password: '',
         });
       } else {
-       
-        setSubmitStatus({ 
-          loading: false, 
-          error: data.message || 'Unknown error occurred', 
-          success: false 
+        setSubmitStatus({
+          loading: false,
+          error: responseData.message || 'Unknown error occurred',
+          success: false,
         });
-        alert(`Error: ${data.message}`);
+        alert(`Error: ${responseData.message}`);
       }
-    } catch (error) {
-      console.error('Submission Error:', error);
-      setSubmitStatus({ 
-        loading: false, 
-        error: 'Network error or server unavailable', 
-        success: false 
+    } catch (err) {
+      console.error('Submission Error:', err);
+      setSubmitStatus({
+        loading: false,
+        error: 'Network error or server unavailable',
+        success: false,
       });
       alert('Network error or server unavailable');
     }
   };
 
   return (
-    <div style={{ margin: '20px' }}>
-      <h1>Create Patient</h1>
+    <div className="create-patient-container">
+      <form onSubmit={handleSubmit} className="patient-form">
+        <h1>Create Patient</h1>
 
-      <form onSubmit={handleSubmit}>
-        <label>
-          Full Name:
+        <div className="form-group">
+          <label>Full Name</label>
           <input
             type="text"
             name="fullName"
@@ -97,11 +120,10 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
+        </div>
 
-        <label>
-          CNI:
+        <div className="form-group">
+          <label>CNI</label>
           <input
             type="text"
             name="cni"
@@ -109,11 +131,10 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
+        </div>
 
-        <label>
-          Email:
+        <div className="form-group">
+          <label>Email</label>
           <input
             type="email"
             name="email"
@@ -121,11 +142,10 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
+        </div>
 
-        <label>
-          Phone Number:
+        <div className="form-group">
+          <label>Phone Number</label>
           <input
             type="text"
             name="phoneNumber"
@@ -133,33 +153,44 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
+        </div>
 
-        <label>
-          Health Problem:
-          <textarea
+        <div className="form-group">
+          <label>Health Problem</label>
+          <select
             name="healthProblem"
             value={patientData.healthProblem}
             onChange={handleChange}
-          />
-        </label>
-        <br />
+            required
+          >
+            <option value="">Select Health Problem</option>
+            {diseases.map((disease) => (
+              <option key={disease.id} value={disease.id}>
+                {disease.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <label>
-          Doctor Name:
-          <input
-            type="text"
+        <div className="form-group">
+          <label>Doctor Name</label>
+          <select
             name="doctorName"
             value={patientData.doctorName}
             onChange={handleChange}
             required
-          />
-        </label>
-        <br />
+          >
+            <option value="">Select Doctor</option>
+            {doctors.map((doctor) => (
+              <option key={doctor.id} value={doctor.id}>
+                {doctor.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        <label>
-          City:
+        <div className="form-group">
+          <label>City</label>
           <input
             type="text"
             name="city"
@@ -167,11 +198,10 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
+        </div>
 
-        <label>
-          Age:
+        <div className="form-group">
+          <label>Age</label>
           <input
             type="number"
             name="age"
@@ -179,11 +209,10 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
+        </div>
 
-        <label>
-          Gender:
+        <div className="form-group">
+          <label>Gender</label>
           <select
             name="gender"
             value={patientData.gender}
@@ -194,12 +223,10 @@ const CreatePatient = () => {
             <option value="Male">Male</option>
             <option value="Female">Female</option>
           </select>
-        </label>
-        <br />
+        </div>
 
-
-        <label>
-          Password:
+        <div className="form-group">
+          <label>Password</label>
           <input
             type="password"
             name="password"
@@ -207,11 +234,22 @@ const CreatePatient = () => {
             onChange={handleChange}
             required
           />
-        </label>
-        <br />
-        
+        </div>
 
-        <button type="submit">Create Patient</button>
+        <button 
+          type="submit" 
+          disabled={submitStatus.loading} 
+          className="submit-btn"
+        >
+          {submitStatus.loading ? 'Submitting...' : 'Create Patient'}
+        </button>
+
+        {submitStatus.success && (
+          <div className="success-message">Patient created successfully!</div>
+        )}
+        {submitStatus.error && (
+          <div className="error-message">{submitStatus.error}</div>
+        )}
       </form>
     </div>
   );
