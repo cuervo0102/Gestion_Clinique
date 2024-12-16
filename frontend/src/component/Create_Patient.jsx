@@ -37,7 +37,6 @@ const CreatePatient = () => {
         console.log('Doctors:', doctorsData);
         console.log('Diseases:', diseasesData);
 
-        // Adjust based on your actual response structure
         setDoctors(doctorsData.data || doctorsData);
         setDiseases(diseasesData.data || diseasesData);
       } catch (err) {

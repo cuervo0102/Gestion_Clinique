@@ -3,10 +3,12 @@ import url from 'url';
 import bcrypt from 'bcryptjs';  
 import client from './db.js';   
 import transporter from './mailConfiguration.js'; 
+import { createDoctor, getAllDoctors, updateDoctor, deleteDoctor } from './doctorsCRUD.js';
+
 
 const PORT = process.env.PORT || 8080;
 
-const sendSuccessResponse = (res, statusCode, data) => {
+export const sendSuccessResponse = (res, statusCode, data) => {
     console.log('Sending success response:', { statusCode, data });
     if (!res.headersSent) {
         res.writeHead(statusCode, { 
@@ -17,7 +19,7 @@ const sendSuccessResponse = (res, statusCode, data) => {
     }
 };
 
-const sendErrorResponse = (res, statusCode, message) => {
+export const sendErrorResponse = (res, statusCode, message) => {
     console.log('Sending error response:', { statusCode, message });
     if (!res.headersSent) {
         res.writeHead(statusCode, { 
@@ -41,10 +43,11 @@ const server = http.createServer(async (req, res) => {
         });
     };
 
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
@@ -157,8 +160,32 @@ const server = http.createServer(async (req, res) => {
                 logError('Fetching Diseases', error);
                 sendErrorResponse(res, 500, 'Failed to fetch diseases');
             }
-        } else {
-            sendErrorResponse(res, 404, 'Endpoint not found');
+        }try {
+            const method = req.method; 
+            const path = url.parse(req.url, true).pathname; 
+        
+            if (method === 'GET' && path === '/doctor') {
+                // Get all doctors
+                await getAllDoctors(req, res);
+            } else if (method === 'POST' && path === '/doctor') {
+                // Create doctor
+                await createDoctor(req, res);
+            } else if (method === 'PUT' && path.startsWith('/doctor/')) {
+                
+                const doctorId = path.split('/')[2];
+                req.params = { doctorId };
+                await updateDoctor(req, res);
+            } else if (method === 'DELETE' && path.startsWith('/doctor/')) {
+                const doctorId = path.split('/')[2];
+                req.params = { doctorId };
+                await deleteDoctor(req, res);
+            } else {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Route not found' }));
+            }
+        } catch (error) {
+            console.error('Unhandled Error:', error);
+            sendErrorResponse(res, 500, 'Internal Server Error');
         }
     } catch (error) {
         logError('General Server Error', error);
@@ -169,3 +196,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
+
+
+export default { sendSuccessResponse, sendErrorResponse };
