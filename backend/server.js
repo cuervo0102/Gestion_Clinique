@@ -4,6 +4,9 @@ import bcrypt from 'bcryptjs';
 import client from './db.js';   
 import transporter from './mailConfiguration.js'; 
 import { createDoctor, getAllDoctors, updateDoctor, deleteDoctor } from './doctorsCRUD.js';
+import { createAssistant, getAllAssistants, updateAssistant, deleteAssistant } from './assistantsCRUD.js';
+import { getAllPatients } from './getAllPatients.js';
+import { createAppointment } from './Appointement.js';
 
 
 const PORT = process.env.PORT || 8080;
@@ -48,17 +51,17 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
-
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
         return;
     }
 
-    const parseUrl = url.parse(req.url, true);
-
     try {
-        if (req.method === 'POST' && parseUrl.pathname === '/submit') {
+        const parsedUrl = url.parse(req.url, true);
+        const path = parsedUrl.pathname;
+
+        if (path === '/submit' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => { body += chunk.toString(); });
 
@@ -75,8 +78,7 @@ const server = http.createServer(async (req, res) => {
                         throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
                     }
 
-                    const { fullName, cni, email, phoneNumber, healthProblem, doctorName, city, age, gender, password } = formData;
-                    const hashedPassword = await bcrypt.hash(password, 10);
+                    const hashedPassword = await bcrypt.hash(formData.password, 10);
 
                     const query = `
                         INSERT INTO "Patients" (
@@ -85,14 +87,18 @@ const server = http.createServer(async (req, res) => {
                         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) 
                         RETURNING id
                     `;
-                    const values = [fullName, cni, email, phoneNumber, healthProblem, doctorName, city, age, gender, hashedPassword];
+                    const values = [
+                        formData.fullName, formData.cni, formData.email, formData.phoneNumber,
+                        formData.healthProblem, formData.doctorName, formData.city,
+                        formData.age, formData.gender, hashedPassword
+                    ];
                     const result = await client.query(query, values);
 
                     const mailOptions = {
                         from: process.env.EMAIL,
-                        to: email,
-                        subject: `Welcome ${fullName}`,
-                        text: `Hi ${fullName},\n\nThank you for registering with us. We're glad to have you!`
+                        to: formData.email,
+                        subject: `Welcome ${formData.fullName}`,
+                        text: `Hi ${formData.fullName},\n\nThank you for registering with us. We're glad to have you!`
                     };
 
                     transporter.sendMail(mailOptions, (err, info) => {
@@ -100,13 +106,16 @@ const server = http.createServer(async (req, res) => {
                         else console.log('Email sent:', info.response);
                     });
 
-                    sendSuccessResponse(res, 200, { message: 'Patient successfully registered!', id: result.rows[0].id });
+                    sendSuccessResponse(res, 200, { 
+                        message: 'Patient successfully registered!', 
+                        id: result.rows[0].id 
+                    });
                 } catch (error) {
                     logError('Patient Registration', error);
                     sendErrorResponse(res, 400, `Invalid request: ${error.message}`);
                 }
             });
-        } else if (req.method === 'POST' && parseUrl.pathname === '/login') {
+        } else if (path === '/login' && req.method === 'POST') {
             let body = '';
             req.on('data', chunk => { body += chunk.toString(); });
 
@@ -135,58 +144,114 @@ const server = http.createServer(async (req, res) => {
                         return;
                     }
 
-
-                    sendSuccessResponse(res, 200, { message: 'Login successful', userId: user.id });
+                    sendSuccessResponse(res, 200, { 
+                        message: 'Login successful', 
+                        userId: user.id 
+                    });
                 } catch (error) {
                     logError('Login', error);
                     sendErrorResponse(res, 500, 'Server error during login');
                 }
             });
-        } else if (req.method === 'GET' && parseUrl.pathname === '/doctors') {
+        } else if (path === '/doctors' && req.method === 'GET') {
             try {
-                const query = 'SELECT id, name FROM "Doctors"';
-                const result = await client.query(query);
+                const result = await client.query('SELECT id, name FROM "Doctors"');
                 sendSuccessResponse(res, 200, result.rows);
             } catch (error) {
                 logError('Fetching Doctors', error);
                 sendErrorResponse(res, 500, 'Failed to fetch doctors');
             }
-        } else if (req.method === 'GET' && parseUrl.pathname === '/diseases') {
+        } else if (path === '/diseases' && req.method === 'GET') {
             try {
-                const query = 'SELECT id, name FROM "Diseases"';
-                const result = await client.query(query);
+                const result = await client.query('SELECT id, name FROM "Diseases"');
                 sendSuccessResponse(res, 200, result.rows);
             } catch (error) {
                 logError('Fetching Diseases', error);
                 sendErrorResponse(res, 500, 'Failed to fetch diseases');
             }
-        }try {
-            const method = req.method; 
-            const path = url.parse(req.url, true).pathname; 
-        
-            if (method === 'GET' && path === '/doctor') {
-                // Get all doctors
-                await getAllDoctors(req, res);
-            } else if (method === 'POST' && path === '/doctor') {
-                // Create doctor
-                await createDoctor(req, res);
-            } else if (method === 'PUT' && path.startsWith('/doctor/')) {
+        } else if (path === '/doctor') {
+            if (req.method === 'GET') await getAllDoctors(req, res);
+            else if (req.method === 'POST') await createDoctor(req, res);
+        } else if (path.startsWith('/doctor/')) {
+            const doctorId = path.split('/')[2];
+            req.params = { doctorId };
+            if (req.method === 'PUT') await updateDoctor(req, res);
+            else if (req.method === 'DELETE') await deleteDoctor(req, res);
+        } else if (path === '/assistant') {
+            if (req.method === 'GET') await getAllAssistants(req, res);
+            else if (req.method === 'POST') await createAssistant(req, res);
+        } else if (path.match(/^\/assistant\/\d+$/)) {
+            const assistantId = path.split('/')[2];
+            req.params = { assistantId };
+            if (req.method === 'PUT') await updateAssistant(req, res);
+            else if (req.method === 'DELETE') await deleteAssistant(req, res);
+        } else if (path.startsWith('/patient/') && req.method === 'GET') {
+            try {
+                const patientId = path.split('/')[2];
+                const query = `
+                    SELECT "fullName", "cni", "email", "phoneNumber", 
+                           "healthProblem", "doctorName", "city", "age", "gender", "createdAt" 
+                    FROM "Patients" WHERE id = $1
+                `;
+                const result = await client.query(query, [patientId]);
                 
-                const doctorId = path.split('/')[2];
-                req.params = { doctorId };
-                await updateDoctor(req, res);
-            } else if (method === 'DELETE' && path.startsWith('/doctor/')) {
-                const doctorId = path.split('/')[2];
-                req.params = { doctorId };
-                await deleteDoctor(req, res);
-            } else {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Route not found' }));
+                if (result.rows.length === 0) {
+                    sendErrorResponse(res, 404, 'Patient not found');
+                    return;
+                }
+        
+                sendSuccessResponse(res, 200, result.rows[0]);
+            } catch (error) {
+                logError('Fetching Patient', error);
+                sendErrorResponse(res, 500, 'Failed to fetch patient data');
             }
-        } catch (error) {
-            console.error('Unhandled Error:', error);
-            sendErrorResponse(res, 500, 'Internal Server Error');
+        } else if (path === '/patients' && req.method === 'GET') {
+            try {
+                const result = await getAllPatients(req, res);
+            } catch (error) {
+                logError('Fetching Patients', error);
+                sendErrorResponse(res, 500, 'Failed to fetch patients');
+            }
+        } else if (path === '/appointments' && req.method === 'POST') {
+            try {
+                await createAppointment(req, res);
+            } catch (error) {
+                logError('Appointment Handler', error);
+                sendErrorResponse(res, 500, error.message || 'Failed to create appointment');
+            }
+        } else if (path === '/appointments/count' && req.method === 'GET') {
+            try {
+                const { doctorId, startDate, endDate } = parsedUrl.query;
+                const query = `
+                    SELECT DATE("appointmentDate") as date, COUNT(*) as count
+                    FROM "Appointments"
+                    WHERE "doctorId" = $1
+                    AND DATE("appointmentDate") >= $2
+                    AND DATE("appointmentDate") <= $3
+                    GROUP BY DATE("appointmentDate")
+                `;
+                const result = await client.query(query, [doctorId, startDate, endDate]);
+        
+                const counts = {};
+                result.rows.forEach(row => {
+                    counts[row.date.toISOString().split('T')[0]] = parseInt(row.count, 10);
+                });
+        
+                sendSuccessResponse(res, 200, { data: counts });
+            } catch (error) {
+                logError('Fetching Appointment Counts', error);
+                sendErrorResponse(res, 500, 'Failed to fetch appointment counts');
+            }
+        } else if (path === '/patients' && req.method === 'GET') {
+            try {
+                const result = await getAllPatients(req, res);
+                sendSuccessResponse(res, 200, result); // Ensure response is sent back
+            } catch (error) {
+                logError('Fetching Patients', error);
+                sendErrorResponse(res, 500, 'Failed to fetch patients');
+            }
         }
+        
     } catch (error) {
         logError('General Server Error', error);
         sendErrorResponse(res, 500, 'Server encountered an error');
@@ -196,7 +261,5 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-
 
 export default { sendSuccessResponse, sendErrorResponse };
