@@ -5,6 +5,9 @@ import client from './db.js';
 import transporter from './mailConfiguration.js'; 
 import { createDoctor, getAllDoctors, updateDoctor, deleteDoctor } from './doctorsCRUD.js';
 import { createAssistant, getAllAssistants, updateAssistant, deleteAssistant } from './assistantsCRUD.js';
+import { getAllPatients } from './getAllPatients.js';
+import { createAppointment } from './Appointement.js';
+
 
 const PORT = process.env.PORT || 8080;
 
@@ -182,9 +185,73 @@ const server = http.createServer(async (req, res) => {
             req.params = { assistantId };
             if (req.method === 'PUT') await updateAssistant(req, res);
             else if (req.method === 'DELETE') await deleteAssistant(req, res);
-        } else {
-            sendErrorResponse(res, 404, 'Route not found');
+        } else if (path.startsWith('/patient/') && req.method === 'GET') {
+            try {
+                const patientId = path.split('/')[2];
+                const query = `
+                    SELECT "fullName", "cni", "email", "phoneNumber", 
+                           "healthProblem", "doctorName", "city", "age", "gender", "createdAt" 
+                    FROM "Patients" WHERE id = $1
+                `;
+                const result = await client.query(query, [patientId]);
+                
+                if (result.rows.length === 0) {
+                    sendErrorResponse(res, 404, 'Patient not found');
+                    return;
+                }
+        
+                sendSuccessResponse(res, 200, result.rows[0]);
+            } catch (error) {
+                logError('Fetching Patient', error);
+                sendErrorResponse(res, 500, 'Failed to fetch patient data');
+            }
+        } else if (path === '/patients' && req.method === 'GET') {
+            try {
+                const result = await getAllPatients(req, res);
+            } catch (error) {
+                logError('Fetching Patients', error);
+                sendErrorResponse(res, 500, 'Failed to fetch patients');
+            }
+        } else if (path === '/appointments' && req.method === 'POST') {
+            try {
+                await createAppointment(req, res);
+            } catch (error) {
+                logError('Appointment Handler', error);
+                sendErrorResponse(res, 500, error.message || 'Failed to create appointment');
+            }
+        } else if (path === '/appointments/count' && req.method === 'GET') {
+            try {
+                const { doctorId, startDate, endDate } = parsedUrl.query;
+                const query = `
+                    SELECT DATE("appointmentDate") as date, COUNT(*) as count
+                    FROM "Appointments"
+                    WHERE "doctorId" = $1
+                    AND DATE("appointmentDate") >= $2
+                    AND DATE("appointmentDate") <= $3
+                    GROUP BY DATE("appointmentDate")
+                `;
+                const result = await client.query(query, [doctorId, startDate, endDate]);
+        
+                const counts = {};
+                result.rows.forEach(row => {
+                    counts[row.date.toISOString().split('T')[0]] = parseInt(row.count, 10);
+                });
+        
+                sendSuccessResponse(res, 200, { data: counts });
+            } catch (error) {
+                logError('Fetching Appointment Counts', error);
+                sendErrorResponse(res, 500, 'Failed to fetch appointment counts');
+            }
+        } else if (path === '/patients' && req.method === 'GET') {
+            try {
+                const result = await getAllPatients(req, res);
+                sendSuccessResponse(res, 200, result); // Ensure response is sent back
+            } catch (error) {
+                logError('Fetching Patients', error);
+                sendErrorResponse(res, 500, 'Failed to fetch patients');
+            }
         }
+        
     } catch (error) {
         logError('General Server Error', error);
         sendErrorResponse(res, 500, 'Server encountered an error');
