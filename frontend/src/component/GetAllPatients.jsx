@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from './calender';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const PatientTable = () => {
   const [patients, setPatients] = useState([]);
@@ -36,17 +37,28 @@ const PatientTable = () => {
     }
   };
 
-  if (loading) return <div className="p-4">Loading patients...</div>;
+  if (loading) {
+    return (
+      <div className="container d-flex justify-content-center align-items-center min-vh-100">
+        <div className="spinner-border text-danger" role="status">
+          <span className="visually-hidden">Loading patients...</span>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="p-4">
-        <p className="text-red-500">{error}</p>
-        <button 
-          onClick={fetchPatients}
-          className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Retry
-        </button>
+      <div className="container mt-5">
+        <div className="alert alert-danger" role="alert">
+          {error}
+          <button 
+            onClick={fetchPatients}
+            className="btn btn-danger ms-3"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -70,47 +82,59 @@ const PatientTable = () => {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Patients List</h1>
-      {patients.length === 0 ? (
-        <p>No patients found</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Health Problem</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">City</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {patients.map((patient) => (
-                <tr key={patient.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{patient.fullName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{patient.doctorName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{patient.healthProblem}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{patient.city}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{patient.age}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{patient.gender}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleSelectDoctor(patient.id)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      Schedule Appointment
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <div className="container py-5">
+      <div className="row">
+        <div className="col-12">
+          <div className="card shadow-lg border-0">
+            <div className="card-header bg-danger bg-opacity-25 py-4">
+              <h2 className="card-title text-center text-danger mb-0">Patients List</h2>
+            </div>
+            <div className="card-body">
+              {patients.length === 0 ? (
+                <div className="alert alert-info" role="alert">
+                  No patients found
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover">
+                    <thead className="table-light">
+                      <tr>
+                        <th className="text-uppercase text-secondary">Name</th>
+                        <th className="text-uppercase text-secondary">Doctor</th>
+                        <th className="text-uppercase text-secondary">Health Problem</th>
+                        <th className="text-uppercase text-secondary">City</th>
+                        <th className="text-uppercase text-secondary">Age</th>
+                        <th className="text-uppercase text-secondary">Gender</th>
+                        <th className="text-uppercase text-secondary">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {patients.map((patient) => (
+                        <tr key={patient.id}>
+                          <td>{patient.fullName}</td>
+                          <td>{patient.doctorName}</td>
+                          <td>{patient.healthProblem}</td>
+                          <td>{patient.city}</td>
+                          <td>{patient.age}</td>
+                          <td>{patient.gender}</td>
+                          <td>
+                            <button
+                              onClick={() => handleSelectDoctor(patient.id)}
+                              className="btn btn-danger btn-sm"
+                            >
+                              Schedule Appointment
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

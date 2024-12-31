@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../login.css';
 
-const LoginPatient = () => {
-  const [email, setEmail] = useState('');
+const LoginAdmin = () => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,13 +15,13 @@ const LoginPatient = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8080/login', {
+      const response = await fetch('http://localhost:8080/admin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
@@ -48,15 +48,15 @@ const LoginPatient = () => {
     <div className="login-background">
       <div className="d-flex justify-content-center align-items-center min-vh-100">
         <div className="login-container">
-          <h2 className="text-center font-pacifico mb-4">Patient Login</h2>
+          <h2 className="text-center font-pacifico mb-4">Admin Login</h2>
           <form onSubmit={handleLogin}>
             <div className="mb-3">
-              <label htmlFor="email" className="form-label">Email</label>
+              <label htmlFor="username" className="form-label">username</label>
               <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="form-control custom-input"
                 required
               />
@@ -89,4 +89,4 @@ const LoginPatient = () => {
   );
 };
 
-export default LoginPatient;
+export default LoginAdmin;

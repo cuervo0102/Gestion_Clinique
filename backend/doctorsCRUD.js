@@ -75,13 +75,6 @@ export const updateDoctor = async (req, res) => {
     });
 };
 
-const deleteDoctorFromDatabase = async (doctorId) => {
-    const query = 'DELETE FROM "Doctors" WHERE "id" = $1 RETURNING *';
-    const values = [doctorId];
-
-    const result = await client.query(query, values);
-    return result.rows.length > 0;
-};
 
 
 

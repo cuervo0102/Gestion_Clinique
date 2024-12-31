@@ -13,6 +13,15 @@ module.exports = {
         allowNull: false,
         unique: true, 
       },
+      doctorId: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'Doctors',
+          key: 'id',
+        },
+        allowNull: false,
+        onDelete: 'CASCADE',  
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,

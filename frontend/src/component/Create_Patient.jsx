@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; 
+import '../patient-create.css';
 
 
 const CreatePatient = () => {
@@ -23,6 +25,8 @@ const CreatePatient = () => {
     success: false,
   });
 
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -34,13 +38,9 @@ const CreatePatient = () => {
         const doctorsData = await doctorsResponse.json();
         const diseasesData = await diseasesResponse.json();
 
-        console.log('Doctors:', doctorsData);
-        console.log('Diseases:', diseasesData);
-
         setDoctors(doctorsData.data || doctorsData);
         setDiseases(diseasesData.data || diseasesData);
       } catch (err) {
-        console.error('Error fetching data:', err);
         alert('Failed to load dropdown data.');
       }
     };
@@ -74,7 +74,6 @@ const CreatePatient = () => {
       if (response.ok) {
         setSubmitStatus({ loading: false, error: null, success: true });
         alert(`Patient created successfully! ID: ${responseData.data.id}`);
-        // Reset form
         setPatientData({
           fullName: '',
           cni: '',
@@ -96,7 +95,6 @@ const CreatePatient = () => {
         alert(`Error: ${responseData.message}`);
       }
     } catch (err) {
-      console.error('Submission Error:', err);
       setSubmitStatus({
         loading: false,
         error: 'Network error or server unavailable',
@@ -107,150 +105,169 @@ const CreatePatient = () => {
   };
 
   return (
-    <div className="create-patient-container">
-      <form onSubmit={handleSubmit} className="patient-form">
-        <h1>Create Patient</h1>
+    <div className="container my-5">
+      <div className="create-patient-container bg-light p-5 rounded shadow">
+        <form onSubmit={handleSubmit}>
+          <h1 className="text-center mb-4 text-pink">Create an appointement</h1>
 
-        <div className="form-group">
-          <label>Full Name</label>
-          <input
-            type="text"
-            name="fullName"
-            value={patientData.fullName}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-group mb-3">
+            <label>Full Name</label>
+            <input
+              type="text"
+              name="fullName"
+              value={patientData.fullName}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label>CNI</label>
-          <input
-            type="text"
-            name="cni"
-            value={patientData.cni}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-group mb-3">
+            <label>CNI</label>
+            <input
+              type="text"
+              name="cni"
+              value={patientData.cni}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label>Email</label>
-          <input
-            type="email"
-            name="email"
-            value={patientData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-group mb-3">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              value={patientData.email}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label>Phone Number</label>
-          <input
-            type="text"
-            name="phoneNumber"
-            value={patientData.phoneNumber}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="form-group mb-3">
+            <label>Phone Number</label>
+            <input
+              type="text"
+              name="phoneNumber"
+              value={patientData.phoneNumber}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+          </div>
 
-        <div className="form-group">
-          <label>Health Problem</label>
-          <select
-            name="healthProblem"
-            value={patientData.healthProblem}
-            onChange={handleChange}
-            required
+          <div className="form-group mb-3">
+            <label>Health Problem</label>
+            <select
+              name="healthProblem"
+              value={patientData.healthProblem}
+              onChange={handleChange}
+              className="form-control"
+              required
+            >
+              <option value="">Select Health Problem</option>
+              {diseases.map((disease) => (
+                <option key={disease.id} value={disease.id}>
+                  {disease.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group mb-3">
+            <label>Doctor Name</label>
+            <select
+              name="doctorName"
+              value={patientData.doctorName}
+              onChange={handleChange}
+              className="form-control"
+              required
+            >
+              <option value="">Select Doctor</option>
+              {doctors.map((doctor) => (
+                <option key={doctor.id} value={doctor.id}>
+                  {doctor.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group mb-3">
+            <label>City</label>
+            <input
+              type="text"
+              name="city"
+              value={patientData.city}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+          </div>
+
+          <div className="form-group mb-3">
+            <label>Age</label>
+            <input
+              type="number"
+              name="age"
+              value={patientData.age}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+          </div>
+
+          <div className="form-group mb-3">
+            <label>Gender</label>
+            <select
+              name="gender"
+              value={patientData.gender}
+              onChange={handleChange}
+              className="form-control"
+              required
+            >
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+
+          <div className="form-group mb-3 position-relative">
+            <label>Password</label>
+            <input
+              type={passwordVisible ? 'text' : 'password'}
+              name="password"
+              value={patientData.password}
+              onChange={handleChange}
+              className="form-control"
+              required
+            />
+            <span
+              onClick={() => setPasswordVisible(!passwordVisible)}
+              className="position-absolute"
+              style={{ top: '50%', right: '10px', transform: 'translateY(-50%)', cursor: 'pointer' }}
+            >
+              {passwordVisible ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitStatus.loading}
+            className="btn btn-pink w-100 py-2"
           >
-            <option value="">Select Health Problem</option>
-            {diseases.map((disease) => (
-              <option key={disease.id} value={disease.id}>
-                {disease.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            {submitStatus.loading ? 'Submitting...' : 'Create Patient'}
+          </button>
 
-        <div className="form-group">
-          <label>Doctor Name</label>
-          <select
-            name="doctorName"
-            value={patientData.doctorName}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Doctor</option>
-            {doctors.map((doctor) => (
-              <option key={doctor.id} value={doctor.id}>
-                {doctor.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>City</label>
-          <input
-            type="text"
-            name="city"
-            value={patientData.city}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Age</label>
-          <input
-            type="number"
-            name="age"
-            value={patientData.age}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Gender</label>
-          <select
-            name="gender"
-            value={patientData.gender}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Password</label>
-          <input
-            type="password"
-            name="password"
-            value={patientData.password}
-            onChange={handleChange}
-            required
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={submitStatus.loading} 
-          className="submit-btn"
-        >
-          {submitStatus.loading ? 'Submitting...' : 'Create Patient'}
-        </button>
-
-        {submitStatus.success && (
-          <div className="success-message">Patient created successfully!</div>
-        )}
-        {submitStatus.error && (
-          <div className="error-message">{submitStatus.error}</div>
-        )}
-      </form>
+          {submitStatus.success && (
+            <div className="alert alert-success mt-3">Patient created successfully!</div>
+          )}
+          {submitStatus.error && (
+            <div className="alert alert-danger mt-3">{submitStatus.error}</div>
+          )}
+        </form>
+      </div>
     </div>
   );
 };

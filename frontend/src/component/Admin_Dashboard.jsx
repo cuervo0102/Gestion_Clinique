@@ -1,34 +1,40 @@
-import React, { useState } from 'react';
-import DoctorsPage from './Doctor_Page';  
-import Assistant from './Assistant_Page';
-import renderPatientPage from './Patient_Case';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import '../admin_dashboard.css'
 
-const DashboardAdmin = () => {
-  const [currentPage, setCurrentPage] = useState('dashboard');
-
-  const handleNavigation = (page) => {
-    setCurrentPage(page);
-  };
-
+const Dashboard = () => {
   return (
-    <div className="admin-dashboard">
+    <div className="dashboard">
+      <h2>Admin Dashboard</h2>
+      <p>Welcome to the Admin Dashboard. From here, you can manage Assistants, Doctors, Appointments, and Diseases.</p>
 
+      <div className="dashboard-links">
+        <h3>Manage Assistants</h3>
         <ul>
-          <li onClick={() => handleNavigation('dashboard')}>Dashboard</li>
-          <li onClick={() => handleNavigation('doctors')}>Doctors</li>
-          <li onClick={() => handleNavigation('assistants')}>Assistants</li>
-          <li onClick={() =>  handleNavigation('patient_case')}>Patient Case</li>
+          <li><Link to="/create-assistant">Create Assistant</Link></li>
+          <li><Link to="/assistants">List Assistants</Link></li>
         </ul>
 
+        <h3>Manage Doctors</h3>
+        <ul>
+          <li><Link to="/create-doctor">Create Doctor</Link></li>
+          <li><Link to="/doctors">List Doctors</Link></li>
+        </ul>
 
-      <div className="page-content">
-        {currentPage === 'dashboard' && <h2>Welcome to the Admin Dashboard</h2>}
-        {currentPage === 'doctors' && <DoctorsPage />} 
-        {currentPage === 'assistants' && <Assistant />} 
-        {currentPage === 'patient_case' && <renderPatientPage />} 
+        <h3>Manage Appointments</h3>
+        <ul>
+          <li><Link to="/create-appointment">Create Appointment</Link></li>
+          <li><Link to="/appointments">List Appointments</Link></li>
+        </ul>
+
+        <h3>Manage Diseases</h3>
+        <ul>
+          <li><Link to="/create-disease">Create Disease</Link></li>
+          <li><Link to="/diseases">List Diseases</Link></li>
+        </ul>
       </div>
     </div>
   );
 };
 
-export default DashboardAdmin;
+export default Dashboard;
