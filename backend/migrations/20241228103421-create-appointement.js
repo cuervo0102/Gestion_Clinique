@@ -15,6 +15,7 @@ module.exports = {
           key: 'id',
         },
         allowNull: false,
+        onDelete: 'CASCADE',  
       },
       doctorId: {
         type: Sequelize.INTEGER,
@@ -23,6 +24,7 @@ module.exports = {
           key: 'id',
         },
         allowNull: false,
+        onDelete: 'CASCADE',  
       },
       appointmentDate: {
         type: Sequelize.DATE,
@@ -31,7 +33,7 @@ module.exports = {
       status: {
         type: Sequelize.STRING,
         allowNull: false,
-        defaultValue: 'Pending', 
+        defaultValue: 'Pending',
       },
       createdAt: {
         allowNull: false,

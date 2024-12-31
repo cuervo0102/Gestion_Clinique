@@ -5,14 +5,22 @@ import CreatePatient from "./component/Create_Patient";
 import LoginPatient from "./component/Login_Patient";
 import PatientTable from "./component/GetAllPatients";
 import Calendar from "./component/calender";
+import Navbar from "./component/Navbar";
+import HomeSection from "./component/Home";
+import Appointment from "./component/MakeAppointement";
+import Dashboard from "./component/Admin_Dashboard";
+import LoginAdmin from "./component/AdminLogin";
 
 // Navigation component
 const Navigation = () => {
   return (
     <nav style={styles.nav}>
       <ul style={styles.navList}>
-        <li style={styles.navItem}>
+        {/* <li style={styles.navItem}>
           <Link to="/" style={styles.navLink}>Home</Link>
+        </li> */}
+        <li style={styles.navItem}>
+          <Link to="/" style={styles.navLink}>Dashboard</Link>
         </li>
         <li style={styles.navItem}>
           <Link to="/create-patient" style={styles.navLink}>Register</Link>
@@ -26,6 +34,18 @@ const Navigation = () => {
         <li style={styles.navItem}>
           <Link to="/calender" style={styles.navLink}>Calendar</Link>
         </li>
+        <li style={styles.navItem}>
+          <Link to="/navbar" style={styles.navLink}>Navbar</Link>
+        </li>
+        <li style={styles.navItem}>
+          <Link to="/home" style={styles.navLink}>Home</Link>
+        </li>
+        <li style={styles.navItem}>
+          <Link to="/appointement" style={styles.navLink}>Appoi</Link>
+        </li>
+        <li style={styles.navItem}>
+          <Link to="/admin" style={styles.navLink}>Admin</Link>
+        </li>
       </ul>
     </nav>
   );
@@ -38,11 +58,16 @@ function App() {
         <Navigation />
         <main style={styles.main}>
           <Routes>
-            <Route path="/" element={<Welcome />} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/create-patient" element={<CreatePatient />} />
             <Route path="/login-patient" element={<LoginPatient />} />
             <Route path="/patients" element={<PatientTable />} />
             <Route path="/calender" element={<Calendar />} />
+            <Route path="/navbar" element={<Navbar />} />
+            <Route path="/home" element={<HomeSection />} />
+            <Route path="/appointement" element={<Appointment />} />
+            <Route path="/Admin" element={<LoginAdmin />} />
+
             <Route path="*" element={<div>Page Not Found</div>} />
           </Routes>
         </main>

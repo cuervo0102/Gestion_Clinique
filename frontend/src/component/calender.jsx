@@ -1,28 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isToday,
+} from 'date-fns';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import '../calender.css'; 
+
 
 const Calendar = ({ doctorId, patientId, onClose }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showBookingSuccess, setShowBookingSuccess] = useState(false);
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [currentDate, doctorId]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       const start = startOfMonth(currentDate);
       const end = endOfMonth(currentDate);
-      
+
       const response = await fetch(
         `http://localhost:8080/appointments/count?` +
-        `doctorId=${doctorId}&` +
-        `startDate=${format(start, 'yyyy-MM-dd')}&` +
-        `endDate=${format(end, 'yyyy-MM-dd')}`
+          `doctorId=${doctorId}&` +
+          `startDate=${format(start, 'yyyy-MM-dd')}&` +
+          `endDate=${format(end, 'yyyy-MM-dd')}`
       );
-      
+
       if (!response.ok) throw new Error('Failed to fetch appointments');
       const { data } = await response.json();
       setAppointments(data);
@@ -32,7 +39,11 @@ const Calendar = ({ doctorId, patientId, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate, doctorId]);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
 
   const handleBooking = async (date) => {
     try {
@@ -47,25 +58,34 @@ const Calendar = ({ doctorId, patientId, onClose }) => {
         body: JSON.stringify({
           patientId,
           doctorId,
-          appointmentDate: dateStr
-        })
+          appointmentDate: dateStr,
+        }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Booking failed');
+        throw new Error(error.message || 'Booking failed');
       }
 
       await fetchAppointments();
-      alert('Appointment booked successfully');
+      setShowBookingSuccess(true);
+      setTimeout(() => setShowBookingSuccess(false), 3000);
     } catch (err) {
-      alert(err.message);
+      setError(err.message);
     }
+  };
+
+  const handleMonthChange = (increment) => {
+    setCurrentDate((prevDate) => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() + increment);
+      return newDate;
+    });
   };
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentDate),
-    end: endOfMonth(currentDate)
+    end: endOfMonth(currentDate),
   });
 
   const weeks = days.reduce((weeks, day) => {
@@ -76,94 +96,111 @@ const Calendar = ({ doctorId, patientId, onClose }) => {
   }, []);
 
   return (
-    <div className="p-6 bg-white rounded-lg shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
-          className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
-        >
-          ←
-        </button>
-        <h2 className="text-xl font-bold">
-          {format(currentDate, 'MMMM yyyy')}
-        </h2>
-        <button
-          onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
-          className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
-        >
-          →
-        </button>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 rounded">
-          {error}
+    <div className="calendar-overlay d-flex align-items-center justify-content-center">
+      <div className="calendar-container rounded shadow p-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <button
+            onClick={() => handleMonthChange(-1)}
+            className="btn btn-outline-pink"
+          >
+            ←
+          </button>
+          <h2 className="text-pink fw-bold">{format(currentDate, 'MMMM yyyy')}</h2>
+          <button
+            onClick={() => handleMonthChange(1)}
+            className="btn btn-outline-pink"
+          >
+            →
+          </button>
         </div>
-      )}
 
-      <div className="rounded-lg overflow-hidden border border-gray-200">
-        <table className="w-full">
-          <thead>
-            <tr>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <th key={day} className="p-2 bg-gray-50 border-b text-gray-600">
-                  {day}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+        
+        {error && <div className="alert alert-danger">{error}</div>}
+
+        {showBookingSuccess && (
+          <div className="alert alert-success">Appointment booked successfully!</div>
+        )}
+
+        <div className="table-responsive">
+          <table className="table table-bordered">
+            <thead className="table-pink text-center">
               <tr>
-                <td colSpan={7} className="h-96 text-center">
-                  Loading calendar...
-                </td>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <th key={day}>{day}</th>
+                ))}
               </tr>
-            ) : (
-              weeks.map((week, weekIndex) => (
-                <tr key={weekIndex}>
-                  {week.map((day, dayIndex) => {
-                    const dateStr = format(day, 'yyyy-MM-dd');
-                    const count = appointments[dateStr] || 0;
-                    const isFull = count >= 10;
-                    
-                    return (
-                      <td 
-                        key={dayIndex}
-                        className={`p-4 border ${
-                          !isSameMonth(day, currentDate) ? 'bg-gray-50' :
-                          isFull ? 'bg-red-50' : 'hover:bg-blue-50'
-                        }`}
-                      >
-                        <div className="space-y-1">
-                          <div className="font-medium">{format(day, 'd')}</div>
-                          <div className="text-sm text-gray-500">{count}/10</div>
-                          {!isFull && isSameMonth(day, currentDate) && (
-                            <button
-                              onClick={() => handleBooking(day)}
-                              className="w-full px-2 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                            >
-                              Book
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center">
+                    <div className="spinner-border text-pink" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                weeks.map((week, weekIndex) => (
+                  <tr key={weekIndex}>
+                    {week.map((day, dayIndex) => {
+                      const dateStr = format(day, 'yyyy-MM-dd');
+                      const count = appointments[dateStr] || 0;
+                      const isFull = count >= 10;
+                      const isCurrentDay = isToday(day);
 
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-100 rounded hover:bg-gray-200"
-        >
-          Close
-        </button>
+                      return (
+                        <td
+                          key={dayIndex}
+                          className={`calendar-cell ${
+                            !isSameMonth(day, currentDate)
+                              ? 'bg-light'
+                              : isFull
+                              ? 'bg-danger text-white'
+                              : 'bg-white'
+                          } ${
+                            isCurrentDay ? 'border border-primary' : ''
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="fw-bold">
+                              {format(day, 'd')}
+                            </div>
+                            <div className="progress mt-2">
+                              <div
+                                className="progress-bar bg-pink"
+                                role="progressbar"
+                                style={{ width: `${(count / 10) * 100}%` }}
+                                aria-valuenow={(count / 10) * 100}
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                              ></div>
+                            </div>
+                            <small>{count}/10 slots</small>
+                            {!isFull && isSameMonth(day, currentDate) && (
+                              <button
+                                onClick={() => handleBooking(day)}
+                                className="btn btn-sm btn-pink mt-2"
+                              >
+                                Book
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+      
+        <div className="text-end mt-4">
+          <button onClick={onClose} className="btn btn-outline-pink">
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,47 @@
+/* Overlay */
+.calendar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+  }
+  
+  /* Container */
+  .calendar-container {
+    background: linear-gradient(135deg, #ffe5f0, #fff);
+    max-width: 800px;
+    width: 100%;
+  }
+  
+  /* Buttons */
+  .btn-outline-pink {
+    border: 2px solid #ff99cc;
+    color: #ff4081;
+  }
+  
+  .btn-outline-pink:hover {
+    background-color: #ff4081;
+    color: #fff;
+  }
+  
+  /* Table */
+  .table-pink {
+    background-color: #ffccdd;
+    color: #ff4081;
+  }
+  
+  .calendar-cell {
+    height: 100px;
+    vertical-align: top;
+  }
+  
+  /* Progress Bar */
+  .progress-bar.bg-pink {
+    background-color: #ff4081;
+  }
+  
+  /* Current Day Highlight */
+  .calendar-cell.border-primary {
+    border: 2px solid #ff4081 !important;
+  }
+  
